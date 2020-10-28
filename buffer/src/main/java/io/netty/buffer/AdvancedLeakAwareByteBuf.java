@@ -36,6 +36,7 @@ import java.nio.charset.Charset;
 final class AdvancedLeakAwareByteBuf extends SimpleLeakAwareByteBuf {
 
     private static final String PROP_ACQUIRE_AND_RELEASE_ONLY = "io.netty.leakDetection.acquireAndReleaseOnly";
+    //除了引用计数操作相关( 即 #retain(...)/#release(...)/#touch(...) 方法 )方法外，是否要调用记录信息
     private static final boolean ACQUIRE_AND_RELEASE_ONLY;
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(AdvancedLeakAwareByteBuf.class);
