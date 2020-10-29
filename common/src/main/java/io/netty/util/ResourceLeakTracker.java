@@ -15,6 +15,7 @@
  */
 package io.netty.util;
 
+//内存泄露跟踪器
 public interface ResourceLeakTracker<T>  {
 
     /**
@@ -35,5 +36,8 @@ public interface ResourceLeakTracker<T>  {
      *
      * @return {@code true} if called first time, {@code false} if called already
      */
+    //#close(T trackedObject) 方法，关闭 ResourceLeakTracker 。如果资源( 例如：ByteBuf 对象 )被正确释放，
+    // 则会调用 #close(T trackedObject) 方法，关闭 ResourceLeakTracker ，从而结束追踪。这样，在
+    // ResourceLeakDetector#reportLeak() 方法，就不会提示该资源泄露。
     boolean close(T trackedObject);
 }

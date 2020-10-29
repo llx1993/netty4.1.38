@@ -39,6 +39,7 @@ import static io.netty.util.internal.StringUtil.EMPTY_STRING;
 import static io.netty.util.internal.StringUtil.NEWLINE;
 import static io.netty.util.internal.StringUtil.simpleClassName;
 
+//内存泄露检测器
 public class ResourceLeakDetector<T> {
 
     private static final String PROP_LEVEL_OLD = "io.netty.leakDetectionLevel";
@@ -52,6 +53,7 @@ public class ResourceLeakDetector<T> {
     // There is a minor performance benefit in TLR if this is a power of 2.
     private static final int DEFAULT_SAMPLING_INTERVAL = 128;
 
+    //每个 DefaultResourceLeak 记录的 Record 数量
     private static final int TARGET_RECORDS;
     static final int SAMPLING_INTERVAL;
 
@@ -120,8 +122,9 @@ public class ResourceLeakDetector<T> {
         // If new property name is present, use it
         levelStr = SystemPropertyUtil.get(PROP_LEVEL, levelStr);
         Level level = Level.parseLevel(levelStr);
-
+        // DefaultResourceLeak 记录的 Record 数量
         TARGET_RECORDS = SystemPropertyUtil.getInt(PROP_TARGET_RECORDS, DEFAULT_TARGET_RECORDS);
+        //采集频率
         SAMPLING_INTERVAL = SystemPropertyUtil.getInt(PROP_SAMPLING_INTERVAL, DEFAULT_SAMPLING_INTERVAL);
 
         ResourceLeakDetector.level = level;
@@ -168,9 +171,12 @@ public class ResourceLeakDetector<T> {
             Collections.newSetFromMap(new ConcurrentHashMap<DefaultResourceLeak<?>, Boolean>());
 
     private final ReferenceQueue<Object> refQueue = new ReferenceQueue<Object>();
+    //已汇报的内存泄露的资源类型的集合
     private final ConcurrentMap<String, Boolean> reportedLeaks = PlatformDependent.newConcurrentHashMap();
 
+    //资源类型
     private final String resourceType;
+    //采集频率
     private final int samplingInterval;
 
     /**
@@ -253,11 +259,13 @@ public class ResourceLeakDetector<T> {
 
     @SuppressWarnings("unchecked")
     private DefaultResourceLeak track0(T obj) {
+        //level是从启动参数获取的，类加载的时候会初始化
         Level level = ResourceLeakDetector.level;
         if (level == Level.DISABLED) {
             return null;
         }
 
+        // SIMPLE 和 ADVANCED
         if (level.ordinal() < Level.PARANOID.ordinal()) {
             if ((PlatformDependent.threadLocalRandom().nextInt(samplingInterval)) == 0) {
                 reportLeak();
@@ -558,9 +566,11 @@ public class ResourceLeakDetector<T> {
         }
     }
 
+    //不进行track的方法集合
     private static final AtomicReference<String[]> excludedMethods =
             new AtomicReference<String[]>(EmptyArrays.EMPTY_STRINGS);
 
+    //添加忽略方法的集合
     public static void addExclusions(Class clz, String ... methodNames) {
         Set<String> nameSet = new HashSet<String>(Arrays.asList(methodNames));
         // Use loop rather than lookup. This avoids knowing the parameters, and doesn't have to handle
