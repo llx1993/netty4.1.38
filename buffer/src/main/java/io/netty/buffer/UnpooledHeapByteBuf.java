@@ -114,6 +114,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
 
     @Override
     public int capacity() {
+        //使用字节数组的长度作为length的大小
         return array.length;
     }
 
@@ -136,8 +137,10 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
                 if (writerIndex > newCapacity) {
                     writerIndex(writerIndex = newCapacity);
                 }
+                //只复制读取段数据到新的数组
                 System.arraycopy(oldArray, readerIndex, newArray, readerIndex, writerIndex - readerIndex);
             } else {
+                //读索引大于新的容量，新容量之前的数据已经读取过，无效了，所以不再进行复制
                 setIndex(newCapacity, newCapacity);
             }
             setArray(newArray);
