@@ -73,6 +73,7 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
     public UnpooledByteBufAllocator(boolean preferDirect, boolean disableLeakDetector, boolean tryNoCleaner) {
         super(preferDirect);
         this.disableLeakDetector = disableLeakDetector;
+        //是否不使用 io.netty.util.internal.Cleaner 来释放 Direct ByteBuf
         noCleaner = tryNoCleaner && PlatformDependent.hasUnsafe()
                 && PlatformDependent.hasDirectBufferNoCleanerConstructor();
     }
