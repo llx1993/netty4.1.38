@@ -108,21 +108,31 @@ final class PoolChunk<T> implements PoolChunkMetric {
     private static final int INTEGER_SIZE_MINUS_ONE = Integer.SIZE - 1;
 
     final PoolArena<T> arena;
+    //内存空间
     final T memory;
+    //是否非池化，当申请的内存大小为 Huge 类型时，创建一整块 Chunk ，并且不拆分成若干 Page
     final boolean unpooled;
     final int offset;
+    //分配信息满二叉树
     private final byte[] memoryMap;
+    //高度信息满二叉树
     private final byte[] depthMap;
     private final PoolSubpage<T>[] subpages;
     /** Used to determine if the requested capacity is equal to or greater than pageSize. */
     private final int subpageOverflowMask;
+    //默认8K
     private final int pageSize;
+    //从 1 开始左移到 {@link #pageSize} 的位数。默认 13 ，1 << 13 = 8192
     private final int pageShifts;
+    //满二叉树的高度，默认为11
     private final int maxOrder;
+    //默认chunk大小，16M
     private final int chunkSize;
+    //chunk求log2, 24
     private final int log2ChunkSize;
     private final int maxSubpageAllocs;
     /** Used to mark memory as unusable */
+    //标记节点不可用。默认为 maxOrder + 1 = 12
     private final byte unusable;
 
     // Use as cache for ByteBuffer created from the memory. These are just duplicates and so are only a container
@@ -141,6 +151,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
     // TODO: Test if adding padding helps under contention
     //private long pad0, pad1, pad2, pad3, pad4, pad5, pad6, pad7;
 
+    //池化构造方法
     PoolChunk(PoolArena<T> arena, T memory, int pageSize, int maxOrder, int pageShifts, int chunkSize, int offset) {
         unpooled = false;
         this.arena = arena;

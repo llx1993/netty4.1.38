@@ -15,6 +15,7 @@
  */
 package io.netty.buffer;
 
+//metric--->度量标准
 public interface ByteBufAllocatorMetric {
     /**
      * Returns the number of bytes of heap memory used by a {@link ByteBufAllocator} or {@code -1} if unknown.
