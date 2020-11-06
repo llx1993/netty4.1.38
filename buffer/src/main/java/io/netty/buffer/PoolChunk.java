@@ -257,12 +257,16 @@ final class PoolChunk<T> implements PoolChunkMetric {
      *
      * @param id id
      */
+    //id---》分配的节点在memoryMap中的index
     private void updateParentsAlloc(int id) {
         while (id > 1) {
             int parentId = id >>> 1;
+            //id 的值
             byte val1 = value(id);
+            //id的兄弟节点的值
             byte val2 = value(id ^ 1);
             byte val = val1 < val2 ? val1 : val2;
+            //左右都分配了，父节点变成unusable = 13, 左边分配了，变成子节点的值
             setValue(parentId, val);
             id = parentId;
         }
@@ -302,16 +306,22 @@ final class PoolChunk<T> implements PoolChunkMetric {
      * @return index in memoryMap
      */
     private int allocateNode(int d) {
+        //分配16k的时候，d = 10
         int id = 1;
         int initial = - (1 << d); // has last d bits = 0 and rest all = 1
+        //root节点所在的层数
         byte val = value(id);
+        //说明空间不够
         if (val > d) { // unusable
             return -1;
         }
         while (val < d || (id & initial) == 0) { // id & initial == 1 << d for all ids at depth d, for < d it is 0
+            //id乘以2到了下一层
             id <<= 1;
             val = value(id);
+            //val > d说明当前节点不可用
             if (val > d) {
+                //右移一个节点
                 id ^= 1;
                 val = value(id);
             }
@@ -320,8 +330,16 @@ final class PoolChunk<T> implements PoolChunkMetric {
         assert value == d && (id & initial) == 1 << d : String.format("val = %d, id & initial = %d, d = %d",
                 value, id & initial, d);
         setValue(id, unusable); // mark as unusable
+        //更新整棵树，每个节点能放下的最大数据量
         updateParentsAlloc(id);
         return id;
+    }
+
+    public static void main(String[] args) {
+        int id = 16;
+        int parentId = id >>> 1;
+        System.out.println(id);
+        System.out.println(parentId);
     }
 
     /**
@@ -331,7 +349,9 @@ final class PoolChunk<T> implements PoolChunkMetric {
      * @return index in memoryMap
      */
     private long allocateRun(int normCapacity) {
+        //normCapacity = 16k,d = 11 - (log2(16K) - 13) = 11 - 14 + 13 = 10,应当从第10层进行选择
         int d = maxOrder - (log2(normCapacity) - pageShifts);
+        //id为在memoryMap中的序号
         int id = allocateNode(d);
         if (id < 0) {
             return id;
