@@ -187,6 +187,11 @@ final class PoolChunk<T> implements PoolChunkMetric {
         cachedNioBuffers = new ArrayDeque<ByteBuffer>(8);
     }
 
+    public static void main(String[] args) {
+        int id = 2;
+        int shift = id ^ 1 << 3;
+        System.out.println(shift);
+    }
     /** Creates a special chunk that is not pooled. */
     PoolChunk(PoolArena<T> arena, T memory, int size, int offset) {
         unpooled = true;
@@ -411,14 +416,19 @@ final class PoolChunk<T> implements PoolChunkMetric {
     }
 
     void initBuf(PooledByteBuf<T> buf, ByteBuffer nioBuffer, long handle, int reqCapacity) {
+        //获取memoryMap的数组下标
         int memoryMapIdx = memoryMapIdx(handle);
+        //获得 bitmap 数组的编号( 下标 )。注意，此时获得的还不是真正的 bitmapIdx 值，需要经过 `bitmapIdx & 0x3FFFFFFF` 运算。
         int bitmapIdx = bitmapIdx(handle);
+        //内存块为page
         if (bitmapIdx == 0) {
             byte val = value(memoryMapIdx);
             assert val == unusable : String.valueOf(val);
             buf.init(this, nioBuffer, handle, runOffset(memoryMapIdx) + offset,
                     reqCapacity, runLength(memoryMapIdx), arena.parent.threadCache());
-        } else {
+        }
+        //内存块为subPage
+        else {
             initBufWithSubpage(buf, nioBuffer, handle, bitmapIdx, reqCapacity);
         }
     }
@@ -465,6 +475,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
         return 1 << log2ChunkSize - depth(id);
     }
 
+    //计算 Page 内存块在 memory 中的开始位置
     private int runOffset(int id) {
         // represents the 0-based offset in #bytes from start of the byte-array chunk
         int shift = id ^ 1 << depth(id);

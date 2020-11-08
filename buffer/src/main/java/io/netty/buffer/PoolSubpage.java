@@ -16,22 +16,42 @@
 
 package io.netty.buffer;
 
+//Page 切分成多个 Subpage 内存块，并未采用相对复杂的算法和数据结构，而是直接基于数组，通过数组来标记
+// 每个 Subpage 内存块是否已经分配
+//申请 Subpage 内存块时，先去按照大小匹配，且有可分配 Subpage 内存块的 Page ：1）如果有，则使用其中的
+// 一块 Subpage ；2）如果没有，则选择一个新的 Page 拆分成多个 Subpage 内存块，使用第 0 块 Subpage
 final class PoolSubpage<T> implements PoolSubpageMetric {
 
     final PoolChunk<T> chunk;
     private final int memoryMapIdx;
+    //在 Chunk 中，偏移字节量
     private final int runOffset;
     private final int pageSize;
+    /**
+     * Subpage 分配信息数组
+     *
+     * 每个 long 的比特位代表一个 Subpage 是否分配。
+     * 因为 PoolSubpage 可能会超过 64 个( long 的 bits 位数 )，所以使用数组。
+     *   例如：Page 默认大小为 8KB ，Subpage 默认最小为 16 B ，所以一个 Page 最多可包含 8 * 1024 / 16 = 512 个 Subpage 。
+     *        因此，bitmap 数组大小为 512 / 64 = 8 。
+     * 另外，bitmap 的数组大小，使用 {@link #bitmapLength} 来标记。或者说，bitmap 数组，默认按照 Subpage 的大小为 16B 来初始化。
+     *    为什么是这样的设定呢？因为 PoolSubpage 可重用，通过 {@link #init(PoolSubpage, int)} 进行重新初始化。
+     */
     private final long[] bitmap;
 
     PoolSubpage<T> prev;
     PoolSubpage<T> next;
-
+    //是否未销毁
     boolean doNotDestroy;
+    //subpage占用内存的大小，默认为16B
     int elemSize;
+    //总共的subPage的数量
     private int maxNumElems;
+    //bitmap的长度
     private int bitmapLength;
+    //下一个可分配的subPage位置
     private int nextAvail;
+    //剩余可用的subPage的数量
     private int numAvail;
 
     // TODO: Test if adding padding helps under contention
@@ -63,6 +83,7 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
             maxNumElems = numAvail = pageSize / elemSize;
             nextAvail = 0;
             bitmapLength = maxNumElems >>> 6;
+            //不能整除的情况，补1
             if ((maxNumElems & 63) != 0) {
                 bitmapLength ++;
             }
@@ -93,6 +114,7 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
         bitmap[q] |= 1L << r;
 
         if (-- numAvail == 0) {
+            //无可用 Subpage 内存块,无可用 Subpage 内存块
             removeFromPool();
         }
 
@@ -118,11 +140,12 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
             addToPool(head);
             return true;
         }
-
+        //当前page仍在使用
         if (numAvail != maxNumElems) {
             return true;
         } else {
             // Subpage not in use (numAvail == maxNumElems)
+            //当前节点为双向链表中的唯一节点，不进行移除。也就说，该节点后续，继续使用。
             if (prev == next) {
                 // Do not remove if this subpage is the only one left in the pool.
                 return true;
@@ -157,10 +180,12 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
 
     private int getNextAvail() {
         int nextAvail = this.nextAvail;
+        //nextAvail 大于 0 ，意味着已经“缓存”好下一个可用的位置，直接返回即可。
         if (nextAvail >= 0) {
             this.nextAvail = -1;
             return nextAvail;
         }
+        //<0则去寻找下一个位置
         return findNextAvail();
     }
 
@@ -178,10 +203,12 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
 
     private int findNextAvail0(int i, long bits) {
         final int maxNumElems = this.maxNumElems;
+        //通过 i << 6 = i * 64 的计算，我们可以通过 i >>> 6 = i / 64 的方式，知道是 bitmap 数组的第几个元素
         final int baseVal = i << 6;
 
         for (int j = 0; j < 64; j ++) {
             if ((bits & 1) == 0) {
+                //使用低 64 bits ，表示分配 bitmap 数组的元素的第几 bit 。
                 int val = baseVal | j;
                 if (val < maxNumElems) {
                     return val;
