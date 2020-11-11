@@ -187,11 +187,6 @@ final class PoolChunk<T> implements PoolChunkMetric {
         cachedNioBuffers = new ArrayDeque<ByteBuffer>(8);
     }
 
-    public static void main(String[] args) {
-        int id = 2;
-        int shift = id ^ 1 << 3;
-        System.out.println(shift);
-    }
     /** Creates a special chunk that is not pooled. */
     PoolChunk(PoolArena<T> arena, T memory, int size, int offset) {
         unpooled = true;
@@ -401,6 +396,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
     }
 
     /**
+     * 释放指定位置的内存块。根据情况，内存块可能是 SubPage ，也可能是 Page ，也可能是释放 SubPage 并且释放对应的 Page
      * Free a subpage or a run of pages
      * When a subpage is freed from PoolSubpage, it might be added back to subpage pool of the owning PoolArena
      * If the subpage pool in PoolArena has at least one other PoolSubpage of given elemSize, we can
@@ -410,6 +406,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
      */
     void free(long handle, ByteBuffer nioBuffer) {
         int memoryMapIdx = memoryMapIdx(handle);
+        //获得 bitmap 数组的编号( 下标 )。注意，此时获得的还不是真正的 bitmapIdx 值，需要经过 `bitmapIdx & 0x3FFFFFFF` 运算
         int bitmapIdx = bitmapIdx(handle);
 
         if (bitmapIdx != 0) { // free a subpage
@@ -420,6 +417,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
             // This is need as we may add it back and so alter the linked-list structure.
             PoolSubpage<T> head = arena.findSubpagePoolHead(subpage.elemSize);
             synchronized (head) {
+                //若返回 false ，说明 Page 中无切分正在使用的 Subpage 内存块，所以可以继续向下执行，释放 Page
                 if (subpage.free(head, bitmapIdx & 0x3FFFFFFF)) {
                     return;
                 }
