@@ -95,8 +95,10 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
          *
          * See https://github.com/netty/netty/issues/3888.
          */
+        // 默认最小 Arena 个数。为什么这样计算，见上面的英文注释，大体的思路是，一个 EventLoop 一个 Arena ，避免多线程竞争。
         final int defaultMinNumArena = NettyRuntime.availableProcessors() * 2;
         final int defaultChunkSize = DEFAULT_PAGE_SIZE << DEFAULT_MAX_ORDER;
+        //`/ 2` 是为了不超过内存的一半，`/ 3` 是为了每个 Arena 有三个 Chunk
         DEFAULT_NUM_HEAP_ARENA = Math.max(0,
                 SystemPropertyUtil.getInt(
                         "io.netty.allocator.numHeapArenas",
@@ -296,6 +298,10 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
 
         // Logarithm base 2. At this point we know that pageSize is a power of two.
         return Integer.SIZE - 1 - Integer.numberOfLeadingZeros(pageSize);
+    }
+
+    public static void main(String[] args) {
+        System.out.println(Integer.numberOfLeadingZeros(4096));
     }
 
     private static int validateAndCalculateChunkSize(int pageSize, int maxOrder) {
