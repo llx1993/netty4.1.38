@@ -335,6 +335,7 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
                     new UnpooledHeapByteBuf(this, initialCapacity, maxCapacity);
         }
 
+        //将 ByteBuf 装饰成 LeakAware ( 可检测内存泄露 )的 ByteBuf 对象
         return toLeakAwareBuffer(buf);
     }
 
@@ -455,6 +456,7 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
         }
 
         @Override
+        //初始化线程的 PoolThreadCache 对象
         protected synchronized PoolThreadCache initialValue() {
             final PoolArena<byte[]> heapArena = leastUsedArena(heapArenas);
             final PoolArena<ByteBuffer> directArena = leastUsedArena(directArenas);

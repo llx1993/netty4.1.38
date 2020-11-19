@@ -54,11 +54,13 @@ final class PoolThreadCache {
     private final MemoryRegionCache<ByteBuffer>[] normalDirectCaches;
 
     // Used for bitshifting when calculate the index of normal caches later
+    //用于计算请求分配的 normal 类型的内存块，在 {@link #normalDirectCaches} 数组中的位置
+    //默认为 log2(pageSize) = log2(8192) = 13
     private final int numShiftsNormalDirect;
     private final int numShiftsNormalHeap;
     private final int freeSweepAllocationThreshold;
     private final AtomicBoolean freed = new AtomicBoolean();
-
+    //{@link #allocations} 到达该阀值，释放缓存,默认为8192次
     private int allocations;
 
     // TODO: Test if adding padding helps under contention
@@ -233,6 +235,7 @@ final class PoolThreadCache {
 
     /**
      *  Should be called if the Thread that uses this cache is about to exist to release resources out of the cache
+     *  释放使用频度较少的内存块缓存
      */
     void free(boolean finalizer) {
         // As free() may be called either by the finalizer or by FastThreadLocal.onRemoval(...) we need to ensure
