@@ -42,6 +42,7 @@ public class LoggingHandler extends ChannelDuplexHandler {
 
     private static final LogLevel DEFAULT_LEVEL = LogLevel.DEBUG;
 
+    //netty内部logger对象
     protected final InternalLogger logger;
     protected final InternalLogLevel internalLevel;
 
