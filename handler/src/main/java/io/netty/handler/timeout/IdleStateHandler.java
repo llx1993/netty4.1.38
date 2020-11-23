@@ -381,6 +381,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
      * {@link ChannelHandlerContext#fireUserEventTriggered(Object)}.
      */
     protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) throws Exception {
+        //监听该事件的handler将会运行相应的对该事件的处理
         ctx.fireUserEventTriggered(evt);
     }
 
@@ -505,6 +506,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
                 nextDelay -= ticksInNanos() - lastReadTime;
             }
 
+            //说明检测到了读空闲
             if (nextDelay <= 0) {
                 // Reader is idle - set a new timeout and notify the callback.
                 readerIdleTimeout = schedule(ctx, this, readerIdleTimeNanos, TimeUnit.NANOSECONDS);
@@ -514,6 +516,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
 
                 try {
                     IdleStateEvent event = newIdleStateEvent(IdleState.READER_IDLE, first);
+                    //channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) 方法，在 pipeline 中，触发 UserEvent 事件。
                     channelIdle(ctx, event);
                 } catch (Throwable t) {
                     ctx.fireExceptionCaught(t);
@@ -544,6 +547,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
                 firstWriterIdleEvent = false;
 
                 try {
+                    // 判断 ChannelOutboundBuffer 是否发生变化
                     if (hasOutputChanged(ctx, first)) {
                         return;
                     }
