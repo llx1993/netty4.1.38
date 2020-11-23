@@ -107,13 +107,17 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         }
     };
 
+    //是否观察 {@link ChannelOutboundBuffer} 写入队列
     private final boolean observeOutput;
+    //配置的读空闲时间，单位：纳秒
     private final long readerIdleTimeNanos;
     private final long writerIdleTimeNanos;
     private final long allIdleTimeNanos;
 
+    //读空闲的定时检测任务
     private ScheduledFuture<?> readerIdleTimeout;
     private long lastReadTime;
+    //是否首次读空闲
     private boolean firstReaderIdleEvent = true;
 
     private ScheduledFuture<?> writerIdleTimeout;
@@ -124,10 +128,14 @@ public class IdleStateHandler extends ChannelDuplexHandler {
     private boolean firstAllIdleEvent = true;
 
     private byte state; // 0 - none, 1 - initialized, 2 - destroyed
+    //是否正在读取
     private boolean reading;
 
+    //最后检测到 {@link ChannelOutboundBuffer} 发生变化的时间
     private long lastChangeCheckTimeStamp;
+    //第一条准备 flush 到对端的消息( {@link ChannelOutboundBuffer#current()} )的 HashCode
     private int lastMessageHashCode;
+    //总共等待 flush 到对端的内存大小( {@link ChannelOutboundBuffer#totalPendingWriteBytes()} )
     private long lastPendingWriteBytes;
     private long lastFlushProgress;
 
@@ -168,7 +176,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
     /**
      * Creates a new instance firing {@link IdleStateEvent}s.
      *
-     * @param observeOutput
+     * @param observeOutput 是否观察 ChannelOutboundBuffer 写入队列
      *        whether or not the consumption of {@code bytes} should be taken into
      *        consideration when assessing write idleness. The default is {@code false}.
      * @param readerIdleTime
@@ -282,6 +290,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (readerIdleTimeNanos > 0 || allIdleTimeNanos > 0) {
             reading = true;
+            //有了读事件之后，则是否第一次的属性就会又变为是
             firstReaderIdleEvent = firstAllIdleEvent = true;
         }
         ctx.fireChannelRead(msg);
@@ -300,6 +309,8 @@ public class IdleStateHandler extends ChannelDuplexHandler {
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
         // Allow writing with void promise if handler is only configured for read timeout events.
         if (writerIdleTimeNanos > 0 || allIdleTimeNanos > 0) {
+            //在开启 write 或 all 的空闲检测的情况下，写入的时候，会添加写入监听器 writeListener 。
+            // 该监听器会在消息( 数据 ) flush 到对端后，回调，修改最后写入时间 lastWriteTime 为 #ticksInNanos()
             ctx.write(msg, promise.unvoid()).addListener(writeListener);
         } else {
             ctx.write(msg, promise);
@@ -316,6 +327,7 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         }
 
         state = 1;
+        // 初始化 ChannelOutboundBuffer 相关属性
         initOutputChanged(ctx);
 
         lastReadTime = lastWriteTime = ticksInNanos();
