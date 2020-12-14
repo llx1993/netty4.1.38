@@ -446,6 +446,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
   }
 
   @Override
+  //在NIOEventLoop自己的线程里被调用
   protected void run() {
     for (; ; ) {
       try {
@@ -685,16 +686,21 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
     try {
       int readyOps = k.readyOps();
+      if ((readyOps & SelectionKey.OP_ACCEPT) != 0){
+        System.out.println("连接事件");
+      }
       // We first need to call finishConnect() before try to trigger a read(...) or write(...) as otherwise
       // the NIO JDK channel implementation may throw a NotYetConnectedException.
-      if ((readyOps & SelectionKey.OP_CONNECT) != 0) {
-        // remove OP_CONNECT as otherwise Selector.select(..) will always return without blocking
-        // See https://github.com/netty/netty/issues/924
-        int ops = k.interestOps();
-        ops &= ~SelectionKey.OP_CONNECT;
-        k.interestOps(ops);
+      {
+        if ((readyOps & SelectionKey.OP_CONNECT) != 0) {
+          // remove OP_CONNECT as otherwise Selector.select(..) will always return without blocking
+          // See https://github.com/netty/netty/issues/924
+          int ops = k.interestOps();
+          ops &= ~SelectionKey.OP_CONNECT;
+          k.interestOps(ops);
 
-        unsafe.finishConnect();
+          unsafe.finishConnect();
+        }
       }
 
       // Process OP_WRITE first as we may be able to write some queued buffers and so free memory.

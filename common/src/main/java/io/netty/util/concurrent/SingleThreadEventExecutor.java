@@ -763,6 +763,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         }
 
         boolean inEventLoop = inEventLoop();
+        //将task加入到quene中去，这里是register0
         addTask(task);
         if (!inEventLoop) {
             startThread();
@@ -904,9 +905,11 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
     private void doStartThread() {
         assert thread == null;
+        //executor instanceof ThreadPerTaskExecutor,这里会把ThreadPerTask在excute方法 里面分配的线程赋值到EventLoop的thread字段
         executor.execute(new Runnable() {
             @Override
             public void run() {
+                //将NIOEventLoop里面的属性设置为在执行run这个方法的Thread
                 thread = Thread.currentThread();
                 if (interrupted) {
                     thread.interrupt();
@@ -915,6 +918,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                 boolean success = false;
                 updateLastExecutionTime();
                 try {
+                    //调用NIOEventLoop.run()
                     SingleThreadEventExecutor.this.run();
                     success = true;
                 } catch (Throwable t) {

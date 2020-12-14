@@ -114,6 +114,7 @@ public class WriteTimeoutHandler extends ChannelOutboundHandlerAdapter {
     }
 
     @Override
+    //移除所有 WriteTimeoutTask 任务，并取消
     public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
         WriteTimeoutTask task = lastTask;
         lastTask = null;

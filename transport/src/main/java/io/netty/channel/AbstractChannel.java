@@ -457,6 +457,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 promise.setFailure(new IllegalStateException("registered to an event loop already"));
                 return;
             }
+            //检查是否是正确的EventLoop类型
             if (!isCompatible(eventLoop)) {
                 promise.setFailure(
                         new IllegalStateException("incompatible event loop type: " + eventLoop.getClass().getName()));
@@ -465,7 +466,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             //设置channel的eventloop属性
             AbstractChannel.this.eventLoop = eventLoop;
             //如果线程已经开始运行，直接注册，如果没有运行，先开启一个线程
-            //判断当前线程是不是nioEventLoop里面的线程
+            //判断当前线程是不是nioEventLoop里面的线程，当前线程是main线程，故这里是false
             if (eventLoop.inEventLoop()) {
                 register0(promise);
             } else {
