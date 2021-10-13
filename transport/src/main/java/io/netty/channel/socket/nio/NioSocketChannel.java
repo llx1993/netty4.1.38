@@ -311,6 +311,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
         try {
             boolean connected = SocketUtils.connect(javaChannel(), remoteAddress);
             if (!connected) {
+                //添加连接事件( SelectionKey.OP_CONNECT )为感兴趣的事件。也就说，也就是说，当连接远程地址成功时，Channel 对应的 Selector 将会轮询到该事件，可以进一步处理。
                 selectionKey().interestOps(SelectionKey.OP_CONNECT);
             }
             success = true;

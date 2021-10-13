@@ -60,7 +60,7 @@ import static io.netty.handler.codec.http.HttpVersion.*;
 
 /**
  * A simple handler that serves incoming HTTP requests to send their respective
- * HTTP responses.  It also implements {@code 'If-Modified-Since'} header to
+ * HTTP responses.  It also implements {@codIdleStateHandlere 'If-Modified-Since'} header to
  * take advantage of browser cache, as described in
  * <a href="http://tools.ietf.org/html/rfc2616#section-14.25">RFC 2616</a>.
  *
